@@ -1,6 +1,7 @@
 using Application.Interfaces;
 using Application.UseCases.Profile;
 using AutoMapper;
+using Domain.Enums;
 using Endpoint.ApiRequests.Profiles;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -49,6 +50,14 @@ namespace Endpoint.Controllers
                 return Ok(result.Value);
             }
             return BadRequest(result.Errors);
+        }
+
+        [HttpDelete(HttpRoute.DeleteAccount)]
+        [Authorize(Roles = nameof(Role.User))]
+        public async Task<IActionResult> DeleteAccount()
+        {
+            var DeleteAccountResult = await _profileService.DeleteAccount();
+            return DeleteAccountResult.IsSuccess ? Ok(DeleteAccountResult.Value) : BadRequest(DeleteAccountResult.Errors);
         }
     }
 }

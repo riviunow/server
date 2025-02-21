@@ -25,7 +25,6 @@ using Application.Interfaces.Games.GameOptions;
 using Application.UseCases.Knowledges.LearningLists;
 using Application.UseCases.Knowledges.PublicationRequests;
 using Application.UseCases.Profile;
-using MySqlConnector;
 
 namespace Endpoint.Extensions;
 
@@ -65,6 +64,7 @@ public static class AppServiceCollectionExtensions
 
         services.AddScoped<GetProfileUseCase>();
         services.AddScoped<UpdateProfileUseCase>();
+        services.AddScoped<DeleteAccountUseCase>();
         services.AddScoped<IProfileService, ProfileService>();
 
         services.AddScoped<CreateDeleteTrackSubjectUseCase>();
