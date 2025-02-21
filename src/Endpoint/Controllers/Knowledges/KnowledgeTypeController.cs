@@ -33,7 +33,6 @@ namespace Endpoint.Controllers.Knowledges
         }
 
         [HttpPost(HttpRoute.GetKnowledgeTypes)]
-        [Authorize]
         public async Task<IActionResult> GetKnowledgeTypes(GetKnowledgeTypesRequest request)
         {
             var Params = _mapper.Map<GetKnowledgeTypesParams>(request);

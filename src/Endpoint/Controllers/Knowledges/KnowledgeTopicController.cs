@@ -41,7 +41,6 @@ namespace Endpoint.Controllers.Knowledges
         }
 
         [HttpPost(HttpRoute.GetKnowledgeTopics)]
-        [Authorize]
         public async Task<IActionResult> GetKnowledgeTopics(GetKnowledgeTopicsRequest request)
         {
             var Params = _mapper.Map<GetKnowledgeTopicsParams>(request);

@@ -41,7 +41,6 @@ namespace Endpoint.Controllers.Knowledges
         }
 
         [HttpPost(HttpRoute.SearchKnowledges)]
-        [Authorize(Roles = nameof(Role.User))]
         public async Task<IActionResult> SearchKnowledges([FromBody] SearchKnowledgesRequest request)
         {
             var parameters = _mapper.Map<SearchKnowledgesParams>(request);
@@ -76,7 +75,7 @@ namespace Endpoint.Controllers.Knowledges
         }
 
         [HttpGet(HttpRoute.GetDetailedKnowledgeByGuid)]
-        [Authorize]
+        // [Authorize]
         public async Task<IActionResult> GetDetailedKnowledgeByGuid(Guid id)
         {
             var result = await _knowledgeService.GetDetailedKnowledgeByGuid(id);

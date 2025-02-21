@@ -12,7 +12,6 @@ using System.Security.Claims;
 using Domain.Enums;
 using Application.Interfaces;
 using Domain.Entities.PivotEntities;
-using Xunit;
 using Domain.Entities.SingleIdPivotEntities;
 
 namespace UnitTests.Knowledges
@@ -40,26 +39,6 @@ namespace UnitTests.Knowledges
             _unitOfWorkMock.Setup(u => u.Repository<User>()).Returns(_userRepositoryMock.Object);
 
             _getDetailedKnowledgeByGuidUseCase = new GetDetailedKnowledgeByGuidUseCase(_unitOfWorkMock.Object, _mapper, _httpContextAccessorMock.Object, _cacheMock.Object);
-        }
-
-        [Fact]
-        public async Task Execute_ShouldReturnFail_WhenUserNotFound()
-        {
-            // Arrange
-            var knowledgeId = Guid.NewGuid();
-
-            _knowledgeRepositoryMock.Setup(r => r.Find(It.IsAny<BaseSpecification<Knowledge>>())).ReturnsAsync(new Knowledge
-            {
-                Title = "Test Knowledge",
-            });
-            _httpContextAccessorMock.Setup(h => h.HttpContext!.User.FindFirst(It.IsAny<string>())).Returns((Claim?)null);
-
-            // Act
-            var result = await _getDetailedKnowledgeByGuidUseCase.Execute(knowledgeId);
-
-            // Assert
-            Assert.False(result.IsSuccess);
-            Assert.Equal(ErrorMessage.UserNotFound, result.Error);
         }
 
         [Fact]

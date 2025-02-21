@@ -46,15 +46,25 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings.Audience,
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSettings.SecretKey)),
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
     };
 
     options.Events = new JwtBearerEvents
     {
-        OnAuthenticationFailed = context =>
+        OnChallenge = async context =>
         {
-            context.Response.StatusCode = 401;
-            context.Response.WriteAsync(JsonSerializer.Serialize(new { message = context.Exception.Message }));
-            return Task.CompletedTask;
+            if (!context.Response.HasStarted)
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogWarning("Unauthorized request {Method} {Path} resulted in 401 Unauthorized",
+                    context.HttpContext.Request.Method, context.HttpContext.Request.Path);
+
+                context.HandleResponse();
+                context.Response.StatusCode = 401;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = "Unauthorized - Token is invalid or expired." }));
+            }
         }
     };
 });
@@ -98,6 +108,25 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo("/root/.aspnet/DataProtection-Keys"))
     .SetApplicationName("MyApp");
 
+var loggerFactory = LoggerFactory.Create(logging =>
+{
+    logging.AddConsole();
+    logging.SetMinimumLevel(LogLevel.Information);
+});
+
+var logger = loggerFactory.CreateLogger<Program>();
+
+logger.LogInformation("=============== Application Configuration ===============");
+logger.LogInformation("Rate Limit: {Limit}", config.GetValue<int>("RateLimiting:Limit"));
+logger.LogInformation("Rate Limit Period: {Period}", config.GetValue<string>("RateLimiting:Period"));
+logger.LogInformation("Refresh Token Expiry (days): {RefreshTokenExpiryInDays}", config.GetValue<int>("JwtSettings:RefreshTokenExpiryInDays"));
+logger.LogInformation("Access Token Expiry (hours): {AccessTokenExpiryInHours}", config.GetValue<int>("JwtSettings:AccessTokenExpiryInHours"));
+logger.LogInformation("Allowed Origins: {AllowedOrigins}", config.GetSection("CorsPolicy").Value != "AllowAnyOrigin" ? string.Join(", ", config.GetSection("AllowedOrigins").Get<string[]>() ?? []) : "Any");
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -108,10 +137,53 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-Console.WriteLine($"Cors Policy: {config.GetSection("CorsPolicy").Value}");
 app.UseCors(config.GetSection("CorsPolicy").Value ?? "AllowAnyOrigin");
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.Use(async (context, next) =>
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+    var originalBodyStream = context.Response.Body;
+
+    using var memoryStream = new MemoryStream();
+    context.Response.Body = memoryStream;
+
+    try
+    {
+        await next();
+
+        if (context.Response.StatusCode >= 400)
+        {
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
+            memoryStream.Seek(0, SeekOrigin.Begin);
+
+            logger.LogWarning("Request {Method} {Path} resulted in {StatusCode} with response: {ResponseBody}",
+                context.Request.Method, context.Request.Path, context.Response.StatusCode, responseBody);
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Unhandled exception for request {Method} {Path}",
+            context.Request.Method, context.Request.Path);
+
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = 500;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = "Internal Server Error" }));
+        }
+    }
+    finally
+    {
+        memoryStream.Seek(0, SeekOrigin.Begin);
+        await memoryStream.CopyToAsync(originalBodyStream);
+        context.Response.Body = originalBodyStream;
+    }
+});
+
 app.UseStaticFiles();
 app.MapControllers();
 app.MapHub<VocabHub>("/vocabhub");

@@ -8,7 +8,6 @@ using Domain.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using Shared.Constants;
-using Xunit;
 
 namespace UnitTests.Knowledges.LearningLists
 {

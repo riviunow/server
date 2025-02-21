@@ -64,7 +64,7 @@ public class ReviewLearningUseCase : IUseCase<List<LearningDto>, List<ReviewLear
                 if (learning == null)
                     return Result<List<LearningDto>>.Fail(ErrorMessage.LearningNotFound);
 
-                else if (learning.NextReviewDate > DateTime.Now)
+                else if (learning.NextReviewDate > DateTime.UtcNow)
                     return Result<List<LearningDto>>.Fail(ErrorMessage.KnowledgeNotReadyToReview);
 
                 else if (learning.LearningHistories.Count == 0)
@@ -98,7 +98,7 @@ public class ReviewLearningUseCase : IUseCase<List<LearningDto>, List<ReviewLear
                 var LatestLearningHistory = learning.LatestLearningHistory;
                 var IsMemorized = score >= 35;
 
-                learning.NextReviewDate = DateTime.Now + (IsMemorized ? GetNextReviewTime(LatestLearningHistory!.LearningLevel) : NeededReviewTime.NotMemorized);
+                learning.NextReviewDate = DateTime.UtcNow + (IsMemorized ? GetNextReviewTime(LatestLearningHistory!.LearningLevel) : NeededReviewTime.NotMemorized);
                 await learningRepository.Update(learning);
 
                 var newLearningHistory = new LearningHistory
@@ -128,11 +128,11 @@ public class ReviewLearningUseCase : IUseCase<List<LearningDto>, List<ReviewLear
     {
         return level switch
         {
-            LearningLevel.LevelZero => NeededReviewTime.Level0,
-            LearningLevel.LevelOne => NeededReviewTime.Level1,
-            LearningLevel.LevelTwo => NeededReviewTime.Level2,
-            LearningLevel.LevelThree => NeededReviewTime.Level3,
-            LearningLevel.LevelFour => NeededReviewTime.Level4,
+            LearningLevel.LevelZero => NeededReviewTime.Level1,
+            LearningLevel.LevelOne => NeededReviewTime.Level2,
+            LearningLevel.LevelTwo => NeededReviewTime.Level3,
+            LearningLevel.LevelThree => NeededReviewTime.Level4,
+            LearningLevel.LevelFour => NeededReviewTime.Level5,
             LearningLevel.LevelFive => NeededReviewTime.Level5,
             _ => NeededReviewTime.Level0
         };

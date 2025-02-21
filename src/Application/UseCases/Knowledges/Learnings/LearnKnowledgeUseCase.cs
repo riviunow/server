@@ -120,7 +120,7 @@ public class LearnKnowledgeUseCase : IUseCase<List<LearningDto>, List<LearnKnowl
                 {
                     UserId = user.Id,
                     KnowledgeId = param.KnowledgeId,
-                    NextReviewDate = DateTime.Now + (score != 0 ? NeededReviewTime.Level0 : NeededReviewTime.NotMemorized),
+                    NextReviewDate = DateTime.UtcNow + (score != 0 ? NeededReviewTime.Level0 : NeededReviewTime.NotMemorized),
                 };
                 newLearning = await learningRepository.Add(newLearning);
                 await learningHistoryRepository.Add(

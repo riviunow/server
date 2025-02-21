@@ -60,8 +60,10 @@ namespace Application.UseCases.Knowledges
                         KnowledgeId = knowledge.Id,
                         UserId = user.Id,
                     };
-                    learnings.Add(learning);
                     await learningRepository.Add(learning);
+
+                    learning.Knowledge = knowledge;
+                    learnings.Add(learning);
 
                     var learningHistory = new LearningHistory
                     {

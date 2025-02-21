@@ -10,7 +10,6 @@ using Shared.Constants;
 using System.Security.Claims;
 using Application.Mappings;
 using Domain.Base;
-using Xunit;
 
 namespace UnitTests.Knowledges.LearningLists
 {

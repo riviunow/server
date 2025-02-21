@@ -8,6 +8,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Configuration;
 
 namespace Application.UseCases.JWT
 {
@@ -20,10 +21,12 @@ namespace Application.UseCases.JWT
     public class GenerateTokenPairUseCase : IUseCase<JWTPairResponse, User>
     {
         private readonly JwtSettings _jwtSettings;
+        private readonly IConfiguration _configuration;
 
-        public GenerateTokenPairUseCase(IOptions<JwtSettings> jwtOptions)
+        public GenerateTokenPairUseCase(IOptions<JwtSettings> jwtOptions, IConfiguration configuration)
         {
             _jwtSettings = jwtOptions.Value;
+            _configuration = configuration;
         }
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
@@ -63,7 +66,7 @@ namespace Application.UseCases.JWT
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddHours(10),
+                Expires = DateTime.UtcNow.AddHours(int.Parse(_configuration["JwtSettings:AccessTokenExpiryInHours"])),
                 Issuer = _jwtSettings.Issuer,
                 Audience = _jwtSettings.Audience,
                 SigningCredentials = creds,

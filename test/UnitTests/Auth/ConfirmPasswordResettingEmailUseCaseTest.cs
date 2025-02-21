@@ -5,6 +5,7 @@ using AutoMapper;
 using Domain.Base;
 using Domain.Entities.SingleIdEntities;
 using Domain.Interfaces;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Moq;
 using Shared.Config;
@@ -20,6 +21,7 @@ namespace UnitTests.Auth
         private readonly Mock<IOptions<JwtSettings>> _jwtOptionsMock;
         private readonly GenerateTokenPairUseCase _generateTokenPairUseCase;
         private readonly ConfirmPasswordResettingEmailUseCase _confirmPasswordResettingEmailUseCase;
+        private readonly Mock<IConfiguration> _configurationMock;
 
         public ConfirmPasswordResettingEmailUseCaseTest()
         {
@@ -37,8 +39,15 @@ namespace UnitTests.Auth
 
             _unitOfWorkMock.Setup(u => u.Repository<Authentication>()).Returns(_authenticationRepositoryMock.Object);
 
-            _generateTokenPairUseCase = new GenerateTokenPairUseCase(_jwtOptionsMock.Object);
-            _confirmPasswordResettingEmailUseCase = new ConfirmPasswordResettingEmailUseCase(_unitOfWorkMock.Object, _mapperMock.Object, _generateTokenPairUseCase);
+            _configurationMock = new Mock<IConfiguration>();
+            var Configuration = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json")
+                .Build();
+            _configurationMock.SetupGet(c => c["JwtSettings:RefreshTokenExpiryInDays"]).Returns(Configuration["JwtSettings:RefreshTokenExpiryInDays"]);
+            _configurationMock.SetupGet(c => c["JwtSettings:AccessTokenExpiryInHours"]).Returns(Configuration["JwtSettings:AccessTokenExpiryInHours"]);
+
+            _generateTokenPairUseCase = new GenerateTokenPairUseCase(_jwtOptionsMock.Object, _configurationMock.Object);
+            _confirmPasswordResettingEmailUseCase = new ConfirmPasswordResettingEmailUseCase(_unitOfWorkMock.Object, _mapperMock.Object, _generateTokenPairUseCase, _configurationMock.Object);
         }
 
         [Fact]

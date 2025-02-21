@@ -1,6 +1,7 @@
 using Application.UseCases.JWT;
 using Domain.Entities.SingleIdEntities;
 using Domain.Interfaces;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Moq;
 using Shared.Config;
@@ -13,6 +14,7 @@ namespace UnitTests.JWT
         private readonly Mock<IRepository<Authentication>> _tokenRepositoryMock;
         private readonly IOptions<JwtSettings> _jwtOptions;
         private readonly GenerateTokenPairUseCase _generateTokenPairUseCase;
+        private readonly Mock<IConfiguration> _configurationMock;
 
         public GenerateTokenPairUseCaseTest()
         {
@@ -27,7 +29,15 @@ namespace UnitTests.JWT
             });
 
             _unitOfWorkMock.Setup(u => u.Repository<Authentication>()).Returns(_tokenRepositoryMock.Object);
-            _generateTokenPairUseCase = new GenerateTokenPairUseCase(_jwtOptions);
+
+            _configurationMock = new Mock<IConfiguration>();
+            var Configuration = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json")
+                .Build();
+            _configurationMock.SetupGet(c => c["JwtSettings:RefreshTokenExpiryInDays"]).Returns(Configuration["JwtSettings:RefreshTokenExpiryInDays"]);
+            _configurationMock.SetupGet(c => c["JwtSettings:AccessTokenExpiryInHours"]).Returns(Configuration["JwtSettings:AccessTokenExpiryInHours"]);
+
+            _generateTokenPairUseCase = new GenerateTokenPairUseCase(_jwtOptions, _configurationMock.Object);
         }
 
         [Fact]
