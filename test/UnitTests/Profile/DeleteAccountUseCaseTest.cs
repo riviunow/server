@@ -4,7 +4,6 @@ using Application.UseCases.Profile;
 using AutoMapper;
 using Domain.Entities.SingleIdEntities;
 using Domain.Interfaces;
-using Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using Shared.Constants;

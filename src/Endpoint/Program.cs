@@ -99,6 +99,8 @@ builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>()
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ISharedDb, SharedDb>();
+builder.Services.AddScoped<IUserLearningService, UserLearningService>();
+builder.Services.AddHostedService<SyncBackgroundService>();
 builder.Services.AddSignalR();
 
 AppServiceCollectionExtensions.AddInfrastructure(builder.Services, config);
@@ -160,21 +162,18 @@ app.Use(async (context, next) =>
             var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
             memoryStream.Seek(0, SeekOrigin.Begin);
 
-            logger.LogWarning("Request {Method} {Path} resulted in {StatusCode} with response: {ResponseBody}",
-                context.Request.Method, context.Request.Path, context.Response.StatusCode, responseBody);
+            logger.LogWarning(
+                "Request {Method} {Path} resulted in {StatusCode} {ResponseBody}",
+                context.Request.Method,
+                context.Request.Path,
+                context.Response.StatusCode,
+                string.IsNullOrEmpty(responseBody) ? "" : $"with response: {responseBody}");
         }
     }
     catch (Exception ex)
     {
         logger.LogError(ex, "Unhandled exception for request {Method} {Path}",
             context.Request.Method, context.Request.Path);
-
-        if (!context.Response.HasStarted)
-        {
-            context.Response.StatusCode = 500;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = "Internal Server Error" }));
-        }
     }
     finally
     {

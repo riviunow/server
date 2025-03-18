@@ -1,63 +1,48 @@
-using Application.Interfaces;
+using Application.DTOs.SingleIdPivotEntities;
+using AutoMapper;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Endpoint.SignalRHub;
 
-public class VocabHub(IRedisCache RedisCache, ISharedDb sharedDb) : Hub
+public class VocabHub(ISharedDb sharedDb, IUserLearningService userLearningService) : Hub
 {
-    private readonly IRedisCache _RedisCache = RedisCache;
     private readonly ISharedDb _sharedDb = sharedDb;
-
-    public override async Task OnConnectedAsync()
-    {
-        var userId = Context.UserIdentifier;
-        if (userId != null)
-        {
-            var rooms = _sharedDb.GetRoomsByUserId(int.Parse(userId));
-            foreach (var room in rooms)
-            {
-                await Groups.AddToGroupAsync(Context.ConnectionId, room.ToString());
-            }
-        }
-        await base.OnConnectedAsync();
-    }
-
+    private readonly IUserLearningService _userLearningService = userLearningService;
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var userId = Context.UserIdentifier;
-        if (userId != null)
+
+        if (Context.Items.TryGetValue("UserId", out var storedUserId) && storedUserId is Guid userId)
         {
-            var rooms = _sharedDb.GetRoomsByUserId(int.Parse(userId));
-            foreach (var room in rooms)
-            {
-                await Groups.RemoveFromGroupAsync(Context.ConnectionId, room.ToString());
-            }
+            _sharedDb.RemoveConnectedUser(userId);
         }
+
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task JoinRoom(int roomId)
+    public async Task OnUserConnected(string UserId, bool dataExist)
     {
-        var userId = Context.UserIdentifier;
-        if (userId != null)
+        if (Guid.TryParse(UserId, out Guid parsedUserId))
         {
-            _sharedDb.AddUserToRoom(int.Parse(userId), roomId);
-            await Groups.AddToGroupAsync(Context.ConnectionId, roomId.ToString());
+            Context.Items["UserId"] = parsedUserId;
+            _sharedDb.AddConnectedUser(parsedUserId, Context.ConnectionId);
+            var lastSync = _sharedDb.GetLastSyncTime(parsedUserId);
+
+            if (lastSync == null || lastSync.Value < DateTime.UtcNow.AddDays(-1) || dataExist == false)
+            {
+                var learnings = await _userLearningService.GetUserLearnings(parsedUserId);
+                await Clients.Caller.SendAsync("SyncLearning", learnings);
+                _sharedDb.UpdateLastSyncTime(parsedUserId);
+            }
         }
+        return;
     }
 
-    public async Task LeaveRoom(int roomId)
+    public void OnUserDisconnected(string UserId)
     {
-        var userId = Context.UserIdentifier;
-        if (userId != null)
+        if (Guid.TryParse(UserId, out Guid parsedUserId))
         {
-            _sharedDb.RemoveUserFromRoom(int.Parse(userId), roomId);
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId.ToString());
+            _sharedDb.RemoveConnectedUser(parsedUserId);
         }
-    }
-
-    public async Task SendMessageToRoom(int roomId, string message)
-    {
-        await Clients.Group(roomId.ToString()).SendAsync("ReceiveMessage", message);
+        return;
     }
 }
