@@ -4,75 +4,46 @@ namespace Endpoint.SignalRHub
 {
     public interface ISharedDb
     {
-        IList<int> GetRoomsByUserId(int userId);
-        IList<int> GetUsersByRoomId(int roomId);
-        void AddUserToRoom(int userId, int roomId);
-        void RemoveUserFromRoom(int userId, int roomId);
+        DateTime? GetLastSyncTime(Guid userId);
+        void UpdateLastSyncTime(Guid userId);
+
+        void AddConnectedUser(Guid userId, string connectionId);
+        void RemoveConnectedUser(Guid userId);
+        IList<(Guid, string)> GetConnectedUsersToSync(DateTime lastSyncThreshold);
     }
 
     public class SharedDb : ISharedDb
     {
-        private readonly ConcurrentDictionary<int, IList<int>> UserToRooms = new ConcurrentDictionary<int, IList<int>>();
-        private readonly ConcurrentDictionary<int, IList<int>> RoomToUsers = new ConcurrentDictionary<int, IList<int>>();
+        private readonly ConcurrentDictionary<Guid, DateTime> UserLastSync = new();
+        private readonly ConcurrentDictionary<Guid, string> ConnectedUsers = new();
 
-        public IList<int> GetRoomsByUserId(int userId)
+        public DateTime? GetLastSyncTime(Guid userId)
         {
-            if (UserToRooms.TryGetValue(userId, out var userRooms))
-            {
-                return userRooms;
-            }
-            return [];
+            return UserLastSync.TryGetValue(userId, out var lastSync) ? lastSync : null;
         }
 
-        public IList<int> GetUsersByRoomId(int roomId)
+        public void UpdateLastSyncTime(Guid userId)
         {
-            if (RoomToUsers.TryGetValue(roomId, out var roomUsers))
-            {
-                return roomUsers;
-            }
-            return [];
+            UserLastSync[userId] = DateTime.UtcNow;
         }
 
-        public void AddUserToRoom(int userId, int roomId)
+        public void AddConnectedUser(Guid userId, string connectionId)
         {
-            UserToRooms.AddOrUpdate(userId, [roomId], (key, list) =>
-            {
-                if (!list.Contains(roomId))
-                {
-                    list.Add(roomId);
-                }
-                return list;
-            });
-
-            RoomToUsers.AddOrUpdate(roomId, [userId], (key, list) =>
-            {
-                if (!list.Contains(userId))
-                {
-                    list.Add(userId);
-                }
-                return list;
-            });
+            ConnectedUsers[userId] = connectionId;
         }
 
-        public void RemoveUserFromRoom(int userId, int roomId)
+        public void RemoveConnectedUser(Guid userId)
         {
-            if (UserToRooms.TryGetValue(userId, out var userRooms))
-            {
-                userRooms.Remove(roomId);
-                if (userRooms.Count == 0)
-                {
-                    UserToRooms.TryRemove(userId, out _);
-                }
-            }
+            ConnectedUsers.TryRemove(userId, out _);
+        }
 
-            if (RoomToUsers.TryGetValue(roomId, out var roomUsers))
-            {
-                roomUsers.Remove(userId);
-                if (roomUsers.Count == 0)
-                {
-                    RoomToUsers.TryRemove(roomId, out _);
-                }
-            }
+        public IList<(Guid, string)> GetConnectedUsersToSync(DateTime lastSyncThreshold)
+        {
+            return ConnectedUsers.Keys
+                .Where(userId => !UserLastSync.TryGetValue(userId, out var lastSync) || lastSync < lastSyncThreshold)
+                .Select(userId => (userId, ConnectedUsers[userId]))
+                .ToList();
         }
     }
+
 }

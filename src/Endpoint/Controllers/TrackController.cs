@@ -32,7 +32,7 @@ namespace Endpoint.Controllers
         }
 
         [HttpGet(HttpRoute.GetDetailedTracks)]
-        [Authorize(Roles = nameof(Role.User))]
+        // [Authorize(Roles = nameof(Role.User))]
         public async Task<IActionResult> GetDetailedTracks()
         {
             var result = await _trackService.GetDetailedTracks();

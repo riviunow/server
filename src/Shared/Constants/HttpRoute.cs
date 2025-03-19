@@ -24,6 +24,7 @@ public class HttpRoute
 
     public const string GetProfile = "get";
     public const string UpdateProfile = "update";
+    public const string DeleteAccount = "delete-account";
 
     #endregion
 

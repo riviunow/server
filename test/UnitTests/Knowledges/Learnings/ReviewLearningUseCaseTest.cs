@@ -111,7 +111,7 @@ namespace UnitTests.Knowledges.Learnings
             {
                 KnowledgeId = knowledgeId,
                 UserId = userId,
-                NextReviewDate = DateTime.Now.AddDays(1),
+                NextReviewDate = DateTime.UtcNow.AddDays(1),
                 LearningHistories = new List<LearningHistory>()
             };
 

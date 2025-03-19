@@ -10,11 +10,19 @@ namespace Application.Services
     {
         private readonly GetProfileUseCase _getProfileUseCase;
         private readonly UpdateProfileUseCase _updateProfileUseCase;
+        private readonly DeleteAccountUseCase _deleteAccountUseCase;
 
-        public ProfileService(GetProfileUseCase getProfileUseCase, UpdateProfileUseCase updateProfileUseCase)
+
+        public ProfileService(GetProfileUseCase getProfileUseCase, UpdateProfileUseCase updateProfileUseCase, DeleteAccountUseCase deleteAccountUseCase)
         {
             _getProfileUseCase = getProfileUseCase;
             _updateProfileUseCase = updateProfileUseCase;
+            _deleteAccountUseCase = deleteAccountUseCase;
+        }
+
+        public Task<Result<UserDto>> DeleteAccount()
+        {
+            return _deleteAccountUseCase.Execute(NoParam.Value);
         }
 
         public Task<Result<UserDto>> GetProfile()

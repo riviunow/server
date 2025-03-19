@@ -5,6 +5,7 @@ using Domain.Base;
 using Domain.Entities.SingleIdEntities;
 using Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Shared.Constants;
 using Shared.Types;
 
@@ -21,12 +22,14 @@ public class LoginUseCase : IUseCase<(UserDto, JWTPairResponse), LoginParams>
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly GenerateTokenPairUseCase _generateTokenPairUseCase;
+    private readonly IConfiguration _configuration;
 
-    public LoginUseCase(IUnitOfWork unitOfWork, IMapper mapper, GenerateTokenPairUseCase generateTokenPairUseCase)
+    public LoginUseCase(IUnitOfWork unitOfWork, IMapper mapper, GenerateTokenPairUseCase generateTokenPairUseCase, IConfiguration configuration)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _generateTokenPairUseCase = generateTokenPairUseCase;
+        _configuration = configuration;
     }
 
     public async Task<Result<(UserDto, JWTPairResponse)>> Execute(LoginParams parameters)
@@ -55,7 +58,7 @@ public class LoginUseCase : IUseCase<(UserDto, JWTPairResponse), LoginParams>
             var authentication = user.Authentication;
             authentication.User = null;
             authentication.RefreshToken = tokenPair.RefreshToken;
-            authentication.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            authentication.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(int.Parse(_configuration["JwtSettings:RefreshTokenExpiryInDays"]));
             await _unitOfWork.Repository<Authentication>().Update(authentication);
             user.Authentication = null;
 

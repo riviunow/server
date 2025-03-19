@@ -22,5 +22,13 @@ namespace Application.Interfaces
         /// <exception cref="ErrorMessage.DeleteFileError">Error deleting file</exception>
         /// <exception cref="ErrorMessage.StoreFileError">Error storing file</exception>
         Task<Result<UserDto>> UpdateProfile(UpdateProfileParams Params);
+
+        /// <summary>
+        /// Delete the account of the authenticated user
+        /// </summary>
+        /// <returns>return the deleted user</returns>
+        /// <exception cref="ErrorMessage.UserNotFound">User not found</exception>
+        Task<Result<UserDto>> DeleteAccount();
+
     }
 }

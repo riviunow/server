@@ -53,7 +53,7 @@ public class GetLearningsToReviewUseCase : IUseCase<List<List<LearningDto>>, Get
 
             if (learnings.Count() != parameters.KnowledgeIds.Count)
                 return Result<List<List<LearningDto>>>.Fail(ErrorMessage.SomeKnowledgesHaveNotBeenLearned);
-            else if (learnings.Any(l => l.NextReviewDate > DateTime.Now))
+            else if (learnings.Any(l => l.NextReviewDate > DateTime.UtcNow))
                 return Result<List<List<LearningDto>>>.Fail(ErrorMessage.SomeKnowledgesAreNotReadyToReview);
 
             learnings = ArrangeLearningsByPriority(learnings);

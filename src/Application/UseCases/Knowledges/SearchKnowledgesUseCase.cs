@@ -80,12 +80,9 @@ namespace Application.UseCases.Knowledges
                 var knowledgeRepository = _unitOfWork.Repository<Knowledge>();
 
                 var userId = UserExtractor.GetUserId(_httpContextAccessor);
-                var user = userId == null ? null : await _unitOfWork.Repository<User>().GetById(userId.Value);
-                if (user == null)
-                    return Result<IEnumerable<KnowledgeDto>>.Fail(ErrorMessage.UserNotFound);
 
                 ISpecification<Knowledge> specification = new BaseSpecification<Knowledge>(k =>
-                    (k.Visibility == KnowledgeVisibility.Public || (k.Visibility == KnowledgeVisibility.Private && k.CreatorId == userId))
+                    (k.Visibility == KnowledgeVisibility.Public || (userId != null && k.Visibility == KnowledgeVisibility.Private && k.CreatorId == userId))
                     && (string.IsNullOrEmpty(parameters.SearchTerm)
                         || k.Title.Contains(parameters.SearchTerm))
                     && (parameters.KnowledgeTypeIds.Count == 0
@@ -131,11 +128,14 @@ namespace Application.UseCases.Knowledges
                     return Result<IEnumerable<KnowledgeDto>>.Fail(ErrorMessage.NoKnowledgesFound);
 
                 var knowledgeDtos = _mapper.Map<IEnumerable<KnowledgeDto>>(knowledges);
-                foreach (var knowledgeDto in knowledgeDtos.ToList())
+                if (userId != null)
                 {
-                    var learning = await _unitOfWork.Repository<Learning>().Find(
-                        new BaseSpecification<Learning>(l => l.KnowledgeId == knowledgeDto.Id && l.UserId == userId));
-                    knowledgeDto.CurrentUserLearning = learning == null ? null : _mapper.Map<LearningDto>(learning);
+                    foreach (var knowledgeDto in knowledgeDtos.ToList())
+                    {
+                        var learning = await _unitOfWork.Repository<Learning>().Find(
+                            new BaseSpecification<Learning>(l => l.KnowledgeId == knowledgeDto.Id && l.UserId == userId));
+                        knowledgeDto.CurrentUserLearning = learning == null ? null : _mapper.Map<LearningDto>(learning);
+                    }
                 }
 
                 return Result<IEnumerable<KnowledgeDto>>.Done(knowledgeDtos, new Paging(parameters.Page, parameters.PageSize, knowledgeCount));

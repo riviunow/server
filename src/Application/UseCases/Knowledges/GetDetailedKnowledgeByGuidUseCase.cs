@@ -60,13 +60,11 @@ namespace Application.UseCases.Knowledges
 
                 var userId = UserExtractor.GetUserId(_httpContextAccessor);
                 var user = userId == null ? null : await _unitOfWork.Repository<User>().GetById(userId.Value);
-                if (user == null)
-                    return Result<KnowledgeDto>.Fail(ErrorMessage.UserNotFound);
 
-                if (!user.IsAdmin && knowledgeDto.CreatorId != userId && knowledgeDto.Visibility == KnowledgeVisibility.Private.ToString())
+                if (user != null && !user.IsAdmin && knowledgeDto.CreatorId != userId && knowledgeDto.Visibility == KnowledgeVisibility.Private.ToString())
                     return Result<KnowledgeDto>.Fail(ErrorMessage.NoKnowledgeFoundWithGuid);
 
-                if (!user.IsAdmin)
+                if (user != null && !user.IsAdmin)
                 {
                     var userLearning = await _unitOfWork.Repository<Learning>().Find(
                         new BaseSpecification<Learning>(ul => ul.UserId == userId && ul.KnowledgeId == id)

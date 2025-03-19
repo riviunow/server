@@ -9,7 +9,7 @@ COPY src/Endpoint/*.csproj ./src/Endpoint/
 RUN dotnet restore ./src/Endpoint
 
 # Copy the remaining files and build the project
-COPY . .
+COPY src /app/src/
 RUN dotnet publish ./src/Endpoint -c Release -o out
 
 # Use the official .NET 8 runtime image as a runtime stage

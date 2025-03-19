@@ -99,7 +99,7 @@ namespace UnitTests.Knowledges.Learnings
                 new Learning {
                     UserId = userId,
                     KnowledgeId = parameters.KnowledgeIds.First(),
-                    NextReviewDate = DateTime.Now.AddDays(1),
+                    NextReviewDate = DateTime.UtcNow.AddDays(1),
                     Knowledge = new Knowledge { Id = Guid.NewGuid(), Title = "Knowledge 1", Visibility = KnowledgeVisibility.Public }},
             };
 

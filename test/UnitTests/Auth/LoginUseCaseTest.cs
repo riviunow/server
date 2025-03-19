@@ -11,6 +11,7 @@ using Domain.Entities.SingleIdEntities;
 using Shared.Config;
 using Microsoft.Extensions.Options;
 using Application.UseCases.JWT;
+using Microsoft.Extensions.Configuration;
 
 namespace UnitTests.Auth
 {
@@ -21,6 +22,7 @@ namespace UnitTests.Auth
         private readonly Mock<IMapper> _mapperMock;
         private readonly Mock<IOptions<JwtSettings>> _jwtOptionsMock;
         private readonly GenerateTokenPairUseCase _generateTokenPairUseCase;
+        private readonly Mock<IConfiguration> _configurationMock;
 
         private readonly LoginUseCase _loginUseCase;
 
@@ -37,10 +39,17 @@ namespace UnitTests.Auth
                 Audience = "test_audience",
                 ExpiryMinutes = 180
             });
-            _generateTokenPairUseCase = new GenerateTokenPairUseCase(_jwtOptionsMock.Object);
+            _configurationMock = new Mock<IConfiguration>();
+            var Configuration = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json")
+                .Build();
+            _configurationMock.SetupGet(c => c["JwtSettings:RefreshTokenExpiryInDays"]).Returns(Configuration["JwtSettings:RefreshTokenExpiryInDays"]);
+            _configurationMock.SetupGet(c => c["JwtSettings:AccessTokenExpiryInHours"]).Returns(Configuration["JwtSettings:AccessTokenExpiryInHours"]);
+
+            _generateTokenPairUseCase = new GenerateTokenPairUseCase(_jwtOptionsMock.Object, _configurationMock.Object);
             _unitOfWorkMock.Setup(u => u.Repository<User>()).Returns(_userRepositoryMock.Object);
 
-            _loginUseCase = new LoginUseCase(_unitOfWorkMock.Object, _mapperMock.Object, _generateTokenPairUseCase);
+            _loginUseCase = new LoginUseCase(_unitOfWorkMock.Object, _mapperMock.Object, _generateTokenPairUseCase, _configurationMock.Object);
         }
 
         [Fact]
